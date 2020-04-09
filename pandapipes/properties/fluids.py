@@ -231,10 +231,10 @@ class FluidPropertyInter2D(FluidProperty):
         super(FluidPropertyInter2D, self).__init__()
         # TODO: How is the property name parsed to the prop_getter?
         # TODO: neue Funktion einbinden für 2x Interpolation
-        self.prop_getter = (
-        CO2.interpolate_property(x_value, y_value, from_path(path="", method="database"))[property_in_db]
+        self.prop_getter = CO2.interpolate_property(x_value, y_value, from_path(path="", method="database"))[
+            property_in_db]
 
-    def get_property(self, x_value, y_value, library, property_in_lib):
+    def get_property(self, arg):
         """
 
         :param arg:
@@ -242,17 +242,12 @@ class FluidPropertyInter2D(FluidProperty):
         :return:
         :rtype:
         """
-        return self.prop_getter(x_value, y_value, library, property_in_lib)
+        return self.prop_getter(arg)
 
     @classmethod
     def from_path(cls, path, method):
         # todo: non-quick and dirty solution
         # Quick and Dirty
-        Str_FilePath2Use = r"C:\Users\FraankPC\Documents\MasterthesisPanda\pandapipes\pandapipes\properties\carbondioxid\CarbonDioxide.xlsx"
-        StrL_Sheets2Use = ["263K", "273K", "283K", "293K", "295K", "297K", "299K", "301K", "302K", "303K", "304K",
-                           "305K", "307K", "309K", "311K", "313K", "323K", "333K", "343K", "353K", "363K", "373K",
-                           "383K", "393K", "403K", "413K", "423K", "433K", "443K", "453K", "463K", "473K"]
-        Str_Col2Use = "A,C,D,J,M,N"
         """
         Reads a file with temperature values in the first column, pressure in 2nd column
          and property values in third column.
@@ -434,10 +429,9 @@ def call_lib(fluid):
     viscosity = FluidPropertyInter2D(x_value, y_value, property_in_db="Viscosity (Pa*s)")
     heat_capacity = FluidPropertyInter2D(x_value, y_value, property_in_db="Cp (J/g*K")
 
-    der_comps = {"water": 0, "air": -0.001, "lgas": -0.0022, "hgas": -0.0022, "carbondioxid": 1}
-    der_comp =
-    if fluid in both:
-        0 else der_comps[fluid]
+    der_comps = {"water": 0, "air": -0.001, "lgas": -0.0022, "hgas": -0.0022, "carbondioxid": 0}
+    der_comp = der_comps[fluid]
+
     compressibility = FluidPropertyConstant(1) if der_comp == 0 \
         else FluidPropertyLinear(der_comp, 1)
     der_compressibility = FluidPropertyConstant(der_comp)
