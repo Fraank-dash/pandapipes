@@ -8,6 +8,7 @@ import numpy as np
 from pandapipes import pp_dir
 from pandapower.io_utils import JSONSerializableClass
 from scipy.interpolate import interp1d
+import pandapipes.properties.carbondioxid.CarbonDioxide as CO2
 
 try:
     import pplog as logging
@@ -213,11 +214,13 @@ class FluidPropertyInter2D(FluidProperty):
     Creates Property with interpolated values. from 2 x-y pairs
     """
     json_excludes = JSONSerializableClass.json_excludes + ["prop_getter"]
+    # TODO: modifiy prop getter entries ???
     prop_getter_entries = {"x1": "x1", "x2": "x2","y": "y", "_fill_value_orig": "fill_value"}
 
-    def __init__(self, x1_values, x2_values, y1_values):
+    def __init__(self, x_value, y_value, property_in_db):
         """
-
+        property = "Temperature (K)", "Pressure (bar)", "Density (kg/m3)", "Cp (J/g*K)",
+        property = "Viscosity (Pa*s)", Therm. Cond. (W/m*K)
         :param x_values:
         :type x_values:
         :param y_values:
@@ -225,12 +228,13 @@ class FluidPropertyInter2D(FluidProperty):
         :param method:
         :type method:
         """
-        super(FluidPropertyInterExtra, self).__init__()
+        super(FluidPropertyInter2D, self).__init__()
         # TODO: How is the property name parsed to the prop_getter?
         # TODO: neue Funktion einbinden für 2x Interpolation
-        self.prop_getter = interpolate_property(x1_values, x2_values, y1_values)
+        self.prop_getter = (
+        CO2.interpolate_property(x_value, y_value, from_path(path="", method="database"))[property_in_db]
 
-    def get_property(self, arg1, arg2):
+    def get_property(self, x_value, y_value, library, property_in_lib):
         """
 
         :param arg:
@@ -238,10 +242,17 @@ class FluidPropertyInter2D(FluidProperty):
         :return:
         :rtype:
         """
-        return self.prop_getter(arg1, arg2)
+        return self.prop_getter(x_value, y_value, library, property_in_lib)
 
     @classmethod
-    def from_path(cls, path, method="interpolate"):
+    def from_path(cls, path, method):
+        # todo: non-quick and dirty solution
+        # Quick and Dirty
+        Str_FilePath2Use = r"C:\Users\FraankPC\Documents\MasterthesisPanda\pandapipes\pandapipes\properties\carbondioxid\CarbonDioxide.xlsx"
+        StrL_Sheets2Use = ["263K", "273K", "283K", "293K", "295K", "297K", "299K", "301K", "302K", "303K", "304K",
+                           "305K", "307K", "309K", "311K", "313K", "323K", "333K", "343K", "353K", "363K", "373K",
+                           "383K", "393K", "403K", "413K", "423K", "433K", "443K", "453K", "463K", "473K"]
+        Str_Col2Use = "A,C,D,J,M,N"
         """
         Reads a file with temperature values in the first column, pressure in 2nd column
          and property values in third column.
@@ -252,9 +263,12 @@ class FluidPropertyInter2D(FluidProperty):
         :return:
         :rtype:
         """
-        values = np.loadtxt(path)
-        database = load_property_library.... # TODO
-        return cls(values[:, 0], values[:, 1], values[:, 2])
+        if method is not "database":
+            values = np.loadtxt(path)
+            return cls(values[:, 0], values[:, 1], values[:, 2])
+        else:
+            database = CO2.load_property_library(path=Str_FilePath2Use, tables=StrL_Sheets2Use, columns=Str_Col2Use)
+            return database
 
     # def to_dict(self):
     #     d = super(FluidPropertyInterExtra, self).to_dict()
@@ -408,20 +422,22 @@ def call_lib(fluid):
 
     liquids = ["water"]
     gases = ["air", "lgas", "hgas"]
-
+    both = ["carbondioxid"]
     if fluid == "natural_gas":
         logger.error("'natural_gas' is ambigious. Please choose 'hgas' or 'lgas' "
                      "(high- or low caloric natural gas)")
-    if fluid not in liquids and fluid not in gases:
+    if fluid not in liquids and fluid not in gases and fluid not in both:
         raise AttributeError("Fluid '%s' not found in the fluid library. It might not be "
                              "implemented yet." % fluid)
+    # todo: x_value and y_value ???
+    density = FluidPropertyInter2D(x_value, y_value, property_in_db="Density (kg/m3)")
+    viscosity = FluidPropertyInter2D(x_value, y_value, property_in_db="Viscosity (Pa*s)")
+    heat_capacity = FluidPropertyInter2D(x_value, y_value, property_in_db="Cp (J/g*K")
 
-    density = interextra_property("density")
-    viscosity = interextra_property("viscosity")
-    heat_capacity = interextra_property("heat_capacity")
-
-    der_comps = {"water": 0, "air": -0.001, "lgas": -0.0022, "hgas": -0.0022}
-    der_comp = der_comps[fluid]
+    der_comps = {"water": 0, "air": -0.001, "lgas": -0.0022, "hgas": -0.0022, "carbondioxid": 1}
+    der_comp =
+    if fluid in both:
+        0 else der_comps[fluid]
     compressibility = FluidPropertyConstant(1) if der_comp == 0 \
         else FluidPropertyLinear(der_comp, 1)
     der_compressibility = FluidPropertyConstant(der_comp)
