@@ -3,7 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
 import numpy as np
-
+import pandapipes.properties.carbondioxid.CarbonDioxide as CO2
+import pandapipes.properties.carbondioxid.Library_Variables as LibVars
 from pandapipes.component_models.abstract_models.branch_models import BranchComponent
 from pandapipes.constants import NORMAL_PRESSURE, GRAVITATION_CONSTANT, NORMAL_TEMPERATURE, \
     P_CONVERSION
@@ -244,13 +245,16 @@ class PipeComponentFrank(BranchWInternalsComponent):
         t_init_i1 = branch_component_pit[:, T_OUT]
         t_m = (t_init_i1 + t_init_i) / 2
 
-        # rho = branch_component_pit[:, RHO] # TODO: Abhängigkeit von p
-        rho = fluid.get_property("density", p_m, t_m)
-        # eta = branch_component_pit[:, ETA] # TODO: Abhängigkeit von p
-        eta = fluid.get_property("viscosity", p_m, t_m)
+        database = CO2.load_property_library(path=LibVars.lib_path, tables=LibVars.lib_tables,
+                                             columns=LibVars.lib_columns)
+        RHO = CO2.interpolate_property(p=p_m, t=t_m, property_library=database)["Density (kg/m3)"]
+        rho = branch_component_pit[:, RHO]
+
+        ETA = CO2.interpolate_property(p=p_m, t=t_m, property_library=database)["Viscosity (Pa*s)"]
+        eta = branch_component_pit[:, ETA]
+
         d = branch_component_pit[:, D]
         k = branch_component_pit[:, K]
-
 
         loss_coef = branch_component_pit[:, LC]
         t_init = (node_pit[from_nodes, TINIT_NODE] + node_pit[to_nodes, TINIT_NODE]) / 2
@@ -284,7 +288,7 @@ class PipeComponentFrank(BranchWInternalsComponent):
 
             # compressibility settings
 
-            comp_fact = get_fluid(net).get_property("compressibility", p_m)
+            comp_fact = 1
 
             const_lambda = NORMAL_PRESSURE * rho * comp_fact * t_init \
                            / (NORMAL_TEMPERATURE * P_CONVERSION)
